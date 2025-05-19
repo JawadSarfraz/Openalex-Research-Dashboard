@@ -23,8 +23,8 @@ def connect_db():
         port=DB_PORT
     )
 
-def insert_data(record):
-    """ Insert data into the publications table """
+def insert_publication(record):
+    """ Insert a single publication record into the database """
     conn = connect_db()
     cursor = conn.cursor()
 
@@ -34,17 +34,21 @@ def insert_data(record):
     ON CONFLICT (id) DO NOTHING;
     """
 
-    cursor.execute(query, record)
-    conn.commit()
-    cursor.close()
-    conn.close()
+    try:
+        cursor.execute(query, record)
+        conn.commit()
+    except Exception as e:
+        print(f"Error inserting record: {e}")
+    finally:
+        cursor.close()
+        conn.close()
 
 def process_file(file_path):
     """ Process JSON data file and insert records into the database """
     with open(file_path, "r") as file:
         data = json.load(file)
         for item in data.get("results", []):
-            publication_id = item.get("id")
+            publication_id = item.get("id", "unknown")
             title = item.get("title", "No Title")
             publication_date = item.get("publication_date", "2000-01-01")
             country = item.get("host_institution", {}).get("country_code", "Unknown")
@@ -52,13 +56,13 @@ def process_file(file_path):
             citation_count = item.get("cited_by_count", 0)
 
             record = (publication_id, title, publication_date, country, field, citation_count)
-            insert_data(record)
+            insert_publication(record)
 
 def process_all_files():
     """ Process all JSON files in the raw data directory """
     for filename in os.listdir(RAW_DATA_PATH):
-        file_path = os.path.join(RAW_DATA_PATH, filename)
         if filename.endswith(".json"):
+            file_path = os.path.join(RAW_DATA_PATH, filename)
             print(f"Processing {filename}...")
             process_file(file_path)
 
