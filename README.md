@@ -28,3 +28,19 @@ Install the required libraries:
 ```bash
 pip install -r requirements.txt
 ```
+
+## Data Processing (PostgreSQL)
+
+- Run the data processing script to insert data into the PostgreSQL database:
+
+```bash
+python3 data-processing/process_data.py
+```
+
+## Data Analysis
+
+Run the data analysis script to generate publication trend plots for AI and Deep Learning research:
+
+```bash
+python3 data-analysis/analyze_data.py
+```
