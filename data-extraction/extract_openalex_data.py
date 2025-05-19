@@ -1,6 +1,6 @@
 import os
 import requests
-import json  # <-- Add this line
+import json
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -10,23 +10,24 @@ os.makedirs(RAW_DATA_PATH, exist_ok=True)
 
 OPENALEX_API_KEY = os.getenv("OPENALEX_API_KEY")
 
-def fetch_openalex_data(query, output_file):
-    """ Fetch data from OpenAlex API and save as JSON """
-    url = f"https://api.openalex.org/works?filter=concepts.id:{query}&per-page=100"
+def fetch_openalex_data(concept_id, start_year, end_year, output_file):
+    """
+    Fetch publication data for a given concept ID and year range from OpenAlex API
+    """
+    url = f"https://api.openalex.org/works?filter=concepts.id:{concept_id},publication_year:{start_year}|{end_year}&per-page=100"
 
-    # If an API key is available, append it to the request
+    # Append API key if available
     if OPENALEX_API_KEY:
         url += f"&api_key={OPENALEX_API_KEY}"
     
     response = requests.get(url)
-    
-    print(f"Request URL: {url}")  # Debug statement
-    print(f"Response Status Code: {response.status_code}")  # Debug statement
+    print(f"Request URL: {url}")
+    print(f"Response Status Code: {response.status_code}")
 
     if response.status_code == 200:
-        print(f"Response Content: {response.json()}")  # Debug statement
         data = response.json()
-        with open(os.path.join(RAW_DATA_PATH, output_file), "w") as file:
+        output_path = os.path.join(RAW_DATA_PATH, output_file)
+        with open(output_path, "w") as file:
             json.dump(data, file, indent=4)
         print(f"Data saved to {output_file}")
     else:
@@ -34,5 +35,5 @@ def fetch_openalex_data(query, output_file):
         print(f"Response Content: {response.content}")
 
 if __name__ == "__main__":
-    # Example: Fetch data for AI (OpenAlex Concept ID: C277839011)
-    fetch_openalex_data("C277839011", "ai_data.json")
+    # Fetch data for Artificial Intelligence (C154945302) from 2010 to 2020
+    fetch_openalex_data("C154945302", 2010, 2020, "ai_2010_2020.json")
