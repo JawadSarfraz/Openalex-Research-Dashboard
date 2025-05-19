@@ -20,13 +20,18 @@ def fetch_openalex_data(query, output_file):
     
     response = requests.get(url)
     
+    print(f"Request URL: {url}")  # Debug statement
+    print(f"Response Status Code: {response.status_code}")  # Debug statement
+
     if response.status_code == 200:
+        print(f"Response Content: {response.json()}")  # Debug statement
         data = response.json()
         with open(os.path.join(RAW_DATA_PATH, output_file), "w") as file:
             json.dump(data, file, indent=4)
         print(f"Data saved to {output_file}")
     else:
         print(f"Failed to fetch data. Status code: {response.status_code}")
+        print(f"Response Content: {response.content}")
 
 if __name__ == "__main__":
     # Example: Fetch data for AI (OpenAlex Concept ID: C277839011)
