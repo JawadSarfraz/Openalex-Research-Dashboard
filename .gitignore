@@ -13,3 +13,7 @@ data-visualization/output/
 
 # System files
 .DS_Store
+
+# Processed Data
+data-processing/intermediate_data/
+data-processing/output/
