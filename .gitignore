@@ -1,0 +1,15 @@
+# Python files
+__pycache__/
+*.pyc
+
+# Environment files
+.env
+config.py
+
+# Data directories
+data-extraction/raw_data/
+data-processing/intermediate_data/
+data-visualization/output/
+
+# System files
+.DS_Store
