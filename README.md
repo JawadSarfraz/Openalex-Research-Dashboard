@@ -44,3 +44,11 @@ Run the data analysis script to generate publication trend plots for AI and Deep
 ```bash
 python3 data-analysis/analyze_data.py
 ```
+
+## Data Extraction (OpenAlex)
+
+- Fetch data from OpenAlex API:
+
+```bash
+python3 data-extraction/extract_openalex_data.py
+```
