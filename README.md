@@ -6,14 +6,23 @@ A dashboard to analyze research output in AI-related fields and Deep Learning ac
 
 ## Project Structure
 
+```
 ai-research-dashboard/
 ├── data-extraction/
 │ ├── config.py # API key storage for OpenAlex
 │ ├── extract_openalex_data.py # Data extraction script
 │ └── raw_data/ # Directory for storing raw JSON data
-├── data-processing/
-├── data-visualization/
-├── README.md
-├── .gitignore
-├── requirements.txt
-└── main.py
+├── data-processing/ # Data cleaning and preprocessing scripts
+├── data-visualization/ # Scripts for data visualization and analysis
+├── README.md # Project documentation
+├── .gitignore # Files and directories to be ignored by Git
+├── requirements.txt # List of dependencies
+└── main.py # Entry point of the dashboard
+
+## Dependencies
+
+Install the required libraries:
+
+```bash
+pip install -r requirements.txt
+```
