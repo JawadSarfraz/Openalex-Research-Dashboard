@@ -19,6 +19,8 @@ ai-research-dashboard/
 ├── requirements.txt # List of dependencies
 └── main.py # Entry point of the dashboard
 
+```
+
 ## Dependencies
 
 Install the required libraries:
