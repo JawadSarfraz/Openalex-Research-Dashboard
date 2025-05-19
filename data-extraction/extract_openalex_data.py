@@ -1,40 +1,27 @@
-# data-extraction/extract_openalex_data.py
-
 import os
 import requests
-import json
-from config import OPENALEX_API_KEY
+from dotenv import load_dotenv
 
-BASE_URL = "https://api.openalex.org/works"
-HEADERS = {
-    "Authorization": f"Bearer {OPENALEX_API_KEY}"
-}
+load_dotenv()
 
-def fetch_data(field, country, start_year, end_year):
-    url = (
-        f"{BASE_URL}?filter=from_publication_date:{start_year}-01-01,"
-        f"to_publication_date:{end_year}-12-31,"
-        f"concepts.id:{field},"
-        f"author.country_code:{country}"
-    )
+OPENALEX_API_KEY = os.getenv("OPENALEX_API_KEY")
+RAW_DATA_PATH = "data-extraction/raw_data/"
+os.makedirs(RAW_DATA_PATH, exist_ok=True)
 
-    response = requests.get(url, headers=HEADERS)
+def fetch_openalex_data(query, output_file):
+    """ Fetch data from OpenAlex API and save as JSON """
+    url = f"https://api.openalex.org/works?filter=concepts.id:{query}&per-page=100&api_key={OPENALEX_API_KEY}"
+    
+    response = requests.get(url)
     
     if response.status_code == 200:
         data = response.json()
-        save_data(data, country, field, start_year, end_year)
+        with open(os.path.join(RAW_DATA_PATH, output_file), "w") as file:
+            json.dump(data, file)
+        print(f"Data saved to {output_file}")
     else:
-        print(f"Error fetching data: {response.status_code}")
-
-def save_data(data, country, field, start_year, end_year):
-    filename = f"raw_data/{country}_{field}_{start_year}_{end_year}.json"
-    os.makedirs("raw_data", exist_ok=True)
-
-    with open(filename, "w") as file:
-        json.dump(data, file, indent=4)
-    
-    print(f"Data saved to {filename}")
+        print(f"Failed to fetch data. Status code: {response.status_code}")
 
 if __name__ == "__main__":
-    # Example usage
-    fetch_data("C123456", "US", 2010, 2020)
+    # Example: Fetch data for AI (OpenAlex Concept ID: C277839011)
+    fetch_openalex_data("C277839011", "ai_data.json")
