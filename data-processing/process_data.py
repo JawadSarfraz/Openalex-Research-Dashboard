@@ -14,7 +14,7 @@ DB_PORT = os.getenv("DB_PORT")
 RAW_DATA_PATH = "data-extraction/raw_data/"
 
 def connect_db():
-    """ Establish connection to the PostgreSQL database. """
+    """ Establish connection to PostgreSQL database """
     return psycopg2.connect(
         dbname=DB_NAME,
         user=DB_USER,
@@ -44,9 +44,10 @@ def insert_publication(record):
         conn.close()
 
 def process_file(file_path):
-    """ Process JSON data file and insert records into the database """
+    """ Process JSON data and insert into PostgreSQL """
     with open(file_path, "r") as file:
         data = json.load(file)
+        
         for item in data.get("results", []):
             publication_id = item.get("id", "unknown")
             title = item.get("title", "No Title")
@@ -54,9 +55,6 @@ def process_file(file_path):
             country = item.get("host_institution", {}).get("country_code", "Unknown")
             field = item.get("concepts", [{}])[0].get("display_name", "Unknown")
             citation_count = item.get("cited_by_count", 0)
-
-            # DEBUG: Print the extracted record before insertion
-            print(f"Inserting: {publication_id}, {title}, {publication_date}, {country}, {field}, {citation_count}")
 
             record = (publication_id, title, publication_date, country, field, citation_count)
             insert_publication(record)
