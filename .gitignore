@@ -17,3 +17,7 @@ data-visualization/output/
 # Processed Data
 data-processing/intermediate_data/
 data-processing/output/
+
+# Analysis Output
+data-analysis/output/
+
