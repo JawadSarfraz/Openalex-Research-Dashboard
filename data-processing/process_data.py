@@ -55,6 +55,9 @@ def process_file(file_path):
             field = item.get("concepts", [{}])[0].get("display_name", "Unknown")
             citation_count = item.get("cited_by_count", 0)
 
+            # DEBUG: Print the extracted record before insertion
+            print(f"Inserting: {publication_id}, {title}, {publication_date}, {country}, {field}, {citation_count}")
+
             record = (publication_id, title, publication_date, country, field, citation_count)
             insert_publication(record)
 
