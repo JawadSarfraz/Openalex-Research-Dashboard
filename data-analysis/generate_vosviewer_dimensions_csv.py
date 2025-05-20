@@ -19,11 +19,11 @@ def fetch_data():
     conn = connect_db()
     cursor = conn.cursor()
 
-    # Select rows where publication_date is a valid date (not "Unknown")
     cursor.execute("""
         SELECT title, publication_date, country, citation_count
         FROM publications
-        WHERE publication_date IS NOT NULL AND publication_date != 'Unknown'
+        WHERE publication_date IS NOT NULL
+        AND publication_date::text != 'Unknown'
     """)
 
     data = cursor.fetchall()
