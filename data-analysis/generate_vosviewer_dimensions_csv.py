@@ -1,11 +1,9 @@
 import requests
-import json
 import csv
 import os
 from time import sleep
 
 # Constants
-RAW_DATA_DIR = "data-extraction/raw_data"
 OUTPUT_CSV = "data-analysis/vosviewer_dimensions_data.csv"
 CONCEPT_IDS = {
     "AI": "C154945302",
@@ -13,20 +11,26 @@ CONCEPT_IDS = {
 }
 YEARS = list(range(2010, 2021))
 PER_PAGE = 200
-MAX_PAGES = 5  # adjust based on your quota and need
+MAX_PAGES = 5  # Limit pages to avoid huge API load
 
-# Ensure folders exist
+# Ensure output directory exists
 os.makedirs("data-analysis", exist_ok=True)
 
 
 def fetch_works(concept_id, year):
     all_results = []
     for page in range(1, MAX_PAGES + 1):
-        url = f"https://api.openalex.org/works?filter=concepts.id:{concept_id},publication_year:{year}&per-page={PER_PAGE}&page={page}"
+        url = (
+            f"https://api.openalex.org/works?"
+            f"filter=concepts.id:{concept_id},publication_year:{year}"
+            f"&per-page={PER_PAGE}&page={page}"
+        )
         print(f"Fetching: {url}")
-        res = requests.get(url)
-        if res.status_code != 200:
-            print(f"Failed on page {page}: {res.status_code}")
+        try:
+            res = requests.get(url, timeout=30)
+            res.raise_for_status()
+        except Exception as e:
+            print(f"⚠️ Request failed: {e}")
             break
 
         data = res.json()
@@ -35,78 +39,71 @@ def fetch_works(concept_id, year):
             break
 
         all_results.extend(results)
-        sleep(1)  # Be polite to API
+        sleep(1)
     return all_results
 
 
-def extract_csv_data(raw_data, field_label):
-    rows = []
-    for item in raw_data:
-        title = item.get("title", "No Title")
-        pub_year = item.get("publication_year", "Unknown")
-        if not isinstance(pub_year, int):
-            pub_year = "Unknown"
+def extract_record(item, label):
+    title = item.get("title", "No Title")
+    year = item.get("publication_year", "Unknown")
+    cited_by = item.get("cited_by_count", 0)
+    doi = item.get("doi", "")
+    source_title = item.get("host_venue", {}).get("display_name", "")
+    volume = item.get("biblio", {}).get("volume", "")
+    issue = item.get("biblio", {}).get("issue", "")
+    
+    authors = []
+    affiliations = []
+    country = "Unknown"
 
-        citation_count = item.get("cited_by_count", 0)
+    for auth in item.get("authorships", []):
+        name = auth.get("author", {}).get("display_name", "")
+        if name:
+            authors.append(name)
 
-        # Authors
-        authorships = item.get("authorships", [])
-        authors = [auth.get("author", {}).get("display_name", "Unknown") for auth in authorships]
-        authors_joined = "; ".join(authors) if authors else "Unknown"
+        insts = auth.get("institutions", [])
+        for inst in insts:
+            affil = inst.get("display_name", "")
+            if affil:
+                affiliations.append(affil)
+            if inst.get("country_code"):
+                country = inst["country_code"]
 
-        # Affiliations
-        affiliations = []
-        for auth in authorships:
-            for inst in auth.get("institutions", []):
-                name = inst.get("display_name")
-                if name:
-                    affiliations.append(name)
-        affiliations_joined = "; ".join(set(affiliations)) if affiliations else "Unknown"
-
-        # Country
-        countries = []
-        for auth in authorships:
-            for inst in auth.get("institutions", []):
-                country = inst.get("country_code")
-                if country:
-                    countries.append(country)
-        countries_joined = ", ".join(set(countries)) or "Unknown"
-
-        row = [
-            title,
-            pub_year,
-            authors_joined,
-            "Unknown",  # Source title
-            "",  # Volume
-            "",  # Issue
-            "",  # Pages
-            item.get("doi", ""),
-            affiliations_joined,
-            citation_count,
-            field_label,
-            countries_joined
-        ]
-        rows.append(row)
-    return rows
+    return [
+        title,
+        year,
+        ", ".join(authors),
+        source_title,
+        volume,
+        issue,
+        doi,
+        ", ".join(affiliations),
+        cited_by,
+        label,
+        country
+    ]
 
 
-def main():
-    all_rows = []
+def generate_csv():
+    records = []
     for label, concept_id in CONCEPT_IDS.items():
         for year in YEARS:
-            raw = fetch_works(concept_id, year)
-            print(f"Year {year} | {label} | {len(raw)} records")
-            extracted = extract_csv_data(raw, label)
-            all_rows.extend(extracted)
+            raw_data = fetch_works(concept_id, year)
+            print(f"✅ {year} - {label}: {len(raw_data)} records")
+            for item in raw_data:
+                record = extract_record(item, label)
+                records.append(record)
 
-    # Write CSV
     with open(OUTPUT_CSV, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        writer.writerow(["Title", "Year", "Authors", "Source title", "Volume", "Issue", "Pages", "DOI", "Affiliations", "Citations", "Field of study", "Country"])
-        writer.writerows(all_rows)
-
-    print(f"✅ CSV export successfully to {OUTPUT_CSV}")
+        writer.writerow([
+            "Title", "Year", "Authors", "Source title", "Volume",
+            "Issue", "DOI", "Affiliations", "Citations",
+            "Field of study", "Country"
+        ])
+        writer.writerows(records)
+    print(f"\n✅ CSV export done: {OUTPUT_CSV}")
 
 
 if __name__ == "__main__":
-    main()
+    generate_csv()
