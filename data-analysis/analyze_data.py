@@ -1,7 +1,6 @@
 import os
 import psycopg2
 import matplotlib.pyplot as plt
-import numpy as np
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -12,45 +11,58 @@ DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT")
 
-# Connect to PostgreSQL database
 def connect_db():
-    return psycopg2.connect(
-        dbname=DB_NAME,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        host=DB_HOST,
-        port=DB_PORT
-    )
+    """ Establish connection to the PostgreSQL database """
+    try:
+        conn = psycopg2.connect(
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            host=DB_HOST,
+            port=DB_PORT
+        )
+        return conn
+    except Exception as e:
+        print(f"Error connecting to the database: {e}")
+        return None
 
-# Fetch data from database
 def fetch_data_by_year():
+    """ Fetch publication count per year from the database """
     conn = connect_db()
     cursor = conn.cursor()
-    query = '''SELECT publication_date, COUNT(*) FROM publications GROUP BY publication_date ORDER BY publication_date ASC;'''
+
+    query = '''
+        SELECT 
+            EXTRACT(YEAR FROM publication_date) AS year, 
+            COUNT(*) 
+        FROM publications 
+        WHERE publication_date IS NOT NULL
+        GROUP BY year 
+        ORDER BY year ASC;
+    '''
+
     cursor.execute(query)
     data = cursor.fetchall()
-    cursor.close()
     conn.close()
+    
     return data
 
-# Plot publication trends
 def plot_publication_trends(data):
-    years, counts = zip(*data)
-    years = [str(year) for year in years]
-
-    plt.figure(figsize=(10, 6))
+    """ Plot the publication trends """
+    years, counts = zip(*data) if data else ([], [])
+    
+    plt.figure(figsize=(12, 6))
     plt.bar(years, counts, color='blue')
     plt.xlabel("Year")
     plt.ylabel("Number of Publications")
     plt.title("Research Publications Over Time")
     plt.xticks(rotation=45)
     plt.tight_layout()
-    plt.savefig("data-analysis/publication_trends.png")
+    output_path = "data-analysis/publication_trends.png"
+    plt.savefig(output_path)
     plt.show()
+    print(f"Plot saved to {output_path}")
 
 if __name__ == "__main__":
     data = fetch_data_by_year()
-    if data:
-        plot_publication_trends(data)
-    else:
-        print("No data available to plot.")
+    plot_publication_trends(data)
