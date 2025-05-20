@@ -1,58 +1,65 @@
 import csv
-import os
 import psycopg2
-from dotenv import load_dotenv
+from datetime import datetime
 
-# Load environment variables
-load_dotenv()
-
-DB_NAME = os.getenv("POSTGRES_DB", "ai_research_db")
-DB_USER = os.getenv("POSTGRES_USER", "ai_user")
-DB_PASSWORD = os.getenv("POSTGRES_PASSWORD", "")
-DB_HOST = os.getenv("POSTGRES_HOST", "localhost")
-DB_PORT = os.getenv("POSTGRES_PORT", "5432")
-
-OUTPUT_PATH = "data-analysis/vosviewer_data_dimensions.csv"
+DB_NAME = "ai_research_db"
+DB_USER = "ai_user"
+DB_PASSWORD = "your_password"  # Optional if .pgpass or ident is set
+DB_HOST = "localhost"
 
 def connect_db():
     return psycopg2.connect(
         dbname=DB_NAME,
         user=DB_USER,
         password=DB_PASSWORD,
-        host=DB_HOST,
-        port=DB_PORT
+        host=DB_HOST
     )
 
 def fetch_data():
     conn = connect_db()
     cursor = conn.cursor()
+
+    # Select rows where publication_date is a valid date (not "Unknown")
     cursor.execute("""
         SELECT title, publication_date, country, citation_count
         FROM publications
-        WHERE publication_date IS NOT NULL AND publication_date != 'Unknown';
+        WHERE publication_date IS NOT NULL AND publication_date != 'Unknown'
     """)
+
     data = cursor.fetchall()
     conn.close()
     return data
 
-def generate_csv(data):
-    os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
+def generate_csv(records):
+    output_file = "data-analysis/vosviewer_dimensions_data.csv"
+    with open(output_file, mode="w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
 
-    with open(OUTPUT_PATH, "w", newline='', encoding='utf-8') as file:
-        writer = csv.writer(file)
-        # Header: Dimensions-like format
-        writer.writerow([
-            "Title", "Authors", "Source title", "DOI", "Year", "Volume",
-            "Issue", "Pages", "Citations", "Affiliations", "Abstract"
-        ])
+        # Write header as per Dimensions format
+        writer.writerow(["Title", "Year", "Authors", "Source title", "Volume", "Issue", "Pages", "DOI", "Affiliations", "Citations", "Field of study", "Country"])
 
-        for title, pub_date, country, citations in data:
-            year = pub_date.year if hasattr(pub_date, 'year') else "Unknown"
+        for title, pub_date, country, citations in records:
+            try:
+                # Extract year only
+                year = pub_date.year if hasattr(pub_date, "year") else datetime.strptime(pub_date, "%Y-%m-%d").year
+            except Exception:
+                continue  # Skip rows with bad date formats
+
+            # Fill with dummy or unknowns for unused columns
             writer.writerow([
-                title, "N/A", "N/A", "N/A", year, "", "", "", citations, country, ""
+                title,
+                year,
+                "Unknown",     # Authors
+                "Unknown",     # Source title
+                "", "", "",    # Volume, Issue, Pages
+                "",            # DOI
+                "",            # Affiliations
+                citations,
+                "AI",          # Field of study (optional customization)
+                country
             ])
 
-    print(f"✅ CSV saved to {OUTPUT_PATH}")
+    print(f"✅ CSV exported successfully to {output_file}")
 
 if __name__ == "__main__":
     records = fetch_data()
